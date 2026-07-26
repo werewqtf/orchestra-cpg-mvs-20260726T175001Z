@@ -8,3 +8,6 @@ def multiply(left: int, right: int) -> int:
 
 def subtract(left: int, right: int) -> int:
     return left - right
+
+
+# Head B intentionally supersedes the receipt bound to head A.
