@@ -1,0 +1,22 @@
+name: policy-guard
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  policy-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Fail closed on protected or out-of-scope files
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {owner: context.repo.owner, repo: context.repo.repo, pull_number: context.payload.pull_request.number, per_page: 100});
+            if (!Array.isArray(files) || files.length === 0) core.setFailed('fail-closed: missing changed-file evidence');
+            const protectedPath = /^(\.github\/workflows\/|\.orchestra\/|ci\/trusted\/|secrets\/|production\/)/;
+            const allowed = /^(app\/|tests\/|README\.md$)/;
+            const bad = files.map(f => f.filename).filter(f => protectedPath.test(f) || !allowed.test(f));
+            if (bad.length) core.setFailed(`policy-guard rejected: ${bad.join(', ')}`);

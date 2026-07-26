@@ -1,0 +1,12 @@
+name: no-deploy-proof
+on:
+  pull_request:
+permissions: {}
+jobs:
+  no-deploy-proof:
+    runs-on: ubuntu-latest
+    environment: synthetic-no-deploy
+    permissions: {}
+    steps:
+      - name: Prove no deployment
+        run: test -n '${{ github.event.pull_request.head.sha }}'

@@ -1,0 +1,38 @@
+name: receipt-gate
+on:
+  workflow_run:
+    workflows: [candidate-ci]
+    types: [completed]
+permissions:
+  contents: read
+  checks: write
+  actions: read
+jobs:
+  receipt-gate:
+    if: ${{ github.event.workflow_run.event == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: exact-revision-receipt
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: downloaded
+      - id: validate
+        env:
+          HEAD: ${{ github.event.workflow_run.head_sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: python3 -S ci/trusted/validate_receipt.py --receipt downloaded/receipt.json --artifact downloaded/calculator.py --repository "$REPOSITORY" --head "$HEAD" --capsule .orchestra/TASK_CAPSULE.json
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        if: always()
+        with:
+          script: |
+            await github.rest.checks.create({owner: context.repo.owner, repo: context.repo.repo, name: 'receipt-gate', head_sha: context.payload.workflow_run.head_sha, status: 'completed', conclusion: '${{ steps.validate.outcome }}' === 'success' ? 'success' : 'failure', output: {title: 'trusted exact-head receipt gate', summary: 'trusted default-branch verifier'}})

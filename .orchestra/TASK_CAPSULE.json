@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-CPG-MVS-001",
+  "decision_id": "DEC-036",
+  "source_of_truth": "ORCHESTRA_EXTERNAL",
+  "authoritative_in_repository": false,
+  "authority": {"orchestra": ["owner intent", "acceptance", "NEXT_ACTION"], "codex": ["bounded implementation", "result only"], "github": ["review records", "machine gates", "archived evidence"]},
+  "scope": {"repository": "one public disposable synthetic repository", "prefix": "orchestra-cpg-mvs-"},
+  "constraints": ["No production, real repositories, personal/customer data, secrets, billing, plan changes or organization settings.", "Only the happy-path PR may merge at its exact current head after all required checks.", "Negative PRs close unmerged; executor acceptance is prohibited."],
+  "acceptance_contract_sha256": "c1d5e6ba6af4c98728dddd51b8167a1e8f970dfd2c4c19e46e98d25d8196d567"
+}

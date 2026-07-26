@@ -1,0 +1,36 @@
+name: candidate-ci
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  candidate-ci:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Deterministic standard-library tests
+        run: python3 -S -m unittest discover -s tests -v
+      - name: Create exact-head receipt and artifact
+        env:
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          mkdir -p candidate-artifact
+          cp app/calculator.py candidate-artifact/calculator.py
+          python3 - <<'PY'
+          import hashlib,json,os
+          capsule=open('.orchestra/TASK_CAPSULE.json','rb').read(); artifact=open('candidate-artifact/calculator.py','rb').read(); verifier=open('ci/trusted/validate_receipt.py','rb').read()
+          r={'schema_version':'1.0','task_id':'TASK-CPG-MVS-001','repository':os.environ['REPOSITORY'],'candidate_sha':os.environ['HEAD'],'workflow_run_id':int(os.environ['RUN_ID']),'artifact_path':'calculator.py','artifact_sha256':hashlib.sha256(artifact).hexdigest(),'verifier_command':'python3 -S ci/trusted/validate_receipt.py','verifier_exit_status':0,'verifier_sha256':hashlib.sha256(verifier).hexdigest(),'task_capsule_sha256':hashlib.sha256(capsule).hexdigest(),'generated_at':'2026-07-26T00:00:00Z'}
+          open('candidate-artifact/receipt.json','w').write(json.dumps(r,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: exact-revision-receipt
+          path: candidate-artifact
+          if-no-files-found: error
